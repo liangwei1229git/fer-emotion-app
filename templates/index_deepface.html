@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>情绪识别 - DeepFace版</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        
+        .optimization-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            margin-top: 10px;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        .card h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+        
+        .video-container {
+            position: relative;
+            width: 100%;
+            border-radius: 15px;
+            overflow: hidden;
+            background: #000;
+        }
+        
+        #video, #canvas {
+            width: 100%;
+            display: block;
+        }
+        
+        #canvas {
+            display: none;
+        }
+        
+        .buttons {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            flex: 1;
+            min-width: 120px;
+            padding: 15px 25px;
+            font-size: 1em;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+        
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+        
+        .result-section {
+            display: none;
+        }
+        
+        .result-section.show {
+            display: block;
+        }
+        
+        .emotion-display {
+            text-align: center;
+            padding: 20px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .emotion-emoji {
+            font-size: 5em;
+            margin-bottom: 10px;
+        }
+        
+        .emotion-name {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+        
+        .emotion-intensity {
+            font-size: 1.2em;
+            color: #666;
+        }
+        
+        .score-display {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .score-label {
+            font-size: 1em;
+            opacity: 0.9;
+            margin-bottom: 5px;
+        }
+        
+        .score-value {
+            font-size: 3.5em;
+            font-weight: bold;
+        }
+        
+        .score-bar {
+            width: 100%;
+            height: 20px;
+            background: rgba(255,255,255,0.3);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 15px;
+        }
+        
+        .score-fill {
+            height: 100%;
+            background: white;
+            border-radius: 10px;
+            transition: width 0.5s ease;
+        }
+        
+        .probabilities {
+            margin-top: 20px;
+        }
+        
+        .prob-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .prob-item:last-child {
+            border-bottom: none;
+        }
+        
+        .prob-label {
+            width: 100px;
+            font-weight: 500;
+        }
+        
+        .prob-bar-container {
+            flex: 1;
+            height: 20px;
+            background: #f0f0f0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 0 15px;
+        }
+        
+        .prob-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            border-radius: 10px;
+            transition: width 0.5s ease;
+        }
+        
+        .prob-value {
+            width: 60px;
+            text-align: right;
+            font-weight: 600;
+            color: #667eea;
+        }
+        
+        .note {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        
+        .note p {
+            color: #856404;
+            line-height: 1.6;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .captured-image {
+            margin-top: 20px;
+            text-align: center;
+        }
+        
+        .captured-image img {
+            max-width: 100%;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .optimization-info {
+            background: #e7f3ff;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        
+        .optimization-info h4 {
+            color: #1976D2;
+            margin-bottom: 10px;
+        }
+        
+        .optimization-info ul {
+            margin-left: 20px;
+            color: #424242;
+        }
+        
+        .optimization-info li {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎭 情绪识别 - DeepFace版</h1>
+            <p>Facial Expression Recognition with DeepFace (高准确率)</p>
+            <div class="optimization-badge">✨ 使用DeepFace库 - 业界领先的准确率</div>
+        </div>
+        
+        <div class="main-content">
+            <div class="card">
+                <h2>📷 拍照</h2>
+                
+                <div class="optimization-info">
+                    <h4>🚀 优化内容:</h4>
+                    <ul>
+                        <li>✅ 使用DeepFace库 - 成熟的人脸分析技术</li>
+                        <li>✅ 高准确率 - 经过大量数据训练</li>
+                        <li>✅ 自动人脸检测和对齐</li>
+                        <li>✅ 支持7种情绪识别</li>
+                    </ul>
+                </div>
+                
+                <div class="video-container">
+                    <video id="video" autoplay playsinline></video>
+                    <canvas id="canvas"></canvas>
+                </div>
+                
+                <div class="buttons">
+                    <button class="btn-primary" id="captureBtn">拍照识别</button>
+                    <button class="btn-secondary" id="stopBtn">关闭相机</button>
+                </div>
+                <div class="captured-image" id="capturedImage" style="display: none;">
+                    <img id="capturedImg" alt="Captured">
+                </div>
+            </div>
+            
+            <div class="card">
+                <h2>📊 识别结果</h2>
+                <div id="loading" class="loading" style="display: none;">
+                    <div class="spinner"></div>
+                    <p>正在分析中...</p>
+                </div>
+                <div id="resultSection" class="result-section">
+                    <div class="emotion-display">
+                        <div class="emotion-emoji" id="emotionEmoji">😊</div>
+                        <div class="emotion-name" id="emotionName">开心</div>
+                        <div class="emotion-intensity" id="emotionIntensity">Happy</div>
+                    </div>
+                    
+                    <div class="score-display">
+                        <div class="score-label">心理健康得分</div>
+                        <div class="score-value" id="mentalHealthScore">75</div>
+                        <div class="score-bar">
+                            <div class="score-fill" id="scoreFill" style="width: 75%;"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="probabilities">
+                        <h3 style="margin-bottom: 15px; color: #667eea;">所有情绪概率</h3>
+                        <div id="probabilitiesList"></div>
+                    </div>
+                    
+                    <div class="note" id="mentalHealthNote" style="display: none;">
+                        <p id="noteText"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const emotionEmojis = {
+            'angry': '😠',
+            'disgust': '🤢',
+            'fear': '😨',
+            'happy': '😊',
+            'sad': '😢',
+            'surprise': '😲',
+            'neutral': '😐'
+        };
+        
+        const emotionNamesZh = {
+            'angry': '愤怒',
+            'disgust': '厌恶',
+            'fear': '恐惧',
+            'happy': '开心',
+            'sad': '悲伤',
+            'surprise': '惊讶',
+            'neutral': '中性'
+        };
+        
+        let video = document.getElementById('video');
+        let canvas = document.getElementById('canvas');
+        let captureBtn = document.getElementById('captureBtn');
+        let stopBtn = document.getElementById('stopBtn');
+        let stream = null;
+        
+        async function startCamera() {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: 'user', width: 640, height: 480 } 
+                });
+                video.srcObject = stream;
+            } catch (err) {
+                console.error('Error accessing camera:', err);
+                alert('无法访问相机，请确保已授予相机权限');
+            }
+        }
+        
+        function stopCamera() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+        }
+        
+        captureBtn.addEventListener('click', async () => {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0);
+            
+            const capturedImg = document.getElementById('capturedImg');
+            capturedImg.src = canvas.toDataURL('image/jpeg');
+            document.getElementById('capturedImage').style.display = 'block';
+            
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('resultSection').classList.remove('show');
+            
+            try {
+                const imageData = canvas.toDataURL('image/jpeg');
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ image: imageData })
+                });
+                
+                const result = await response.json();
+                
+                if (result.error) {
+                    alert('识别失败: ' + result.error);
+                } else {
+                    displayResult(result);
+                }
+            } catch (err) {
+                console.error('Error:', err);
+                alert('识别失败，请重试');
+            }
+            
+            document.getElementById('loading').style.display = 'none';
+        });
+        
+        stopBtn.addEventListener('click', () => {
+            stopCamera();
+        });
+        
+        function displayResult(result) {
+            document.getElementById('resultSection').classList.add('show');
+            
+            document.getElementById('emotionEmoji').textContent = emotionEmojis[result.emotion] || '😊';
+            document.getElementById('emotionName').textContent = result.emotion_zh || result.emotion;
+            document.getElementById('emotionIntensity').textContent = result.intensity_description;
+            
+            const score = result.mental_health_score;
+            document.getElementById('mentalHealthScore').textContent = score;
+            document.getElementById('scoreFill').style.width = score + '%';
+            
+            const probList = document.getElementById('probabilitiesList');
+            probList.innerHTML = '';
+            
+            const sortedProbs = Object.entries(result.all_probabilities)
+                .sort((a, b) => b[1] - a[1]);
+            
+            sortedProbs.forEach(([emotion, prob]) => {
+                const item = document.createElement('div');
+                item.className = 'prob-item';
+                item.innerHTML = `
+                    <span class="prob-label">${emotionNamesZh[emotion] || emotion}</span>
+                    <div class="prob-bar-container">
+                        <div class="prob-bar" style="width: ${(prob * 100).toFixed(1)}%;"></div>
+                    </div>
+                    <span class="prob-value">${(prob * 100).toFixed(1)}%</span>
+                `;
+                probList.appendChild(item);
+            });
+            
+            if (result.mental_health_note) {
+                document.getElementById('mentalHealthNote').style.display = 'block';
+                document.getElementById('noteText').textContent = result.mental_health_note;
+            } else {
+                document.getElementById('mentalHealthNote').style.display = 'none';
+            }
+        }
+        
+        startCamera();
+    </script>
+</body>
+</html>
+

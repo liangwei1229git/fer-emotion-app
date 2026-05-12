@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>情绪识别与心理健康分析 - 最终优化版</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 25px 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 35px;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 12px;
+            text-shadow: 2px 2px 10px rgba(0,0,0,0.2);
+            font-weight: 700;
+        }
+        
+        .header p {
+            font-size: 1.15em;
+            opacity: 0.95;
+            font-weight: 300;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1.1fr;
+            gap: 30px;
+        }
+        
+        @media (max-width: 1100px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .card {
+            background: white;
+            border-radius: 24px;
+            padding: 30px;
+            box-shadow: 0 25px 80px rgba(0,0,0,0.25);
+        }
+        
+        .card h2 {
+            color: #667eea;
+            margin-bottom: 22px;
+            font-size: 1.5em;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .video-container {
+            position: relative;
+            width: 100%;
+            border-radius: 18px;
+            overflow: hidden;
+            background: #1a1a1a;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        
+        #video, #canvas {
+            width: 100%;
+            display: block;
+        }
+        
+        #canvas {
+            display: none;
+        }
+        
+        .detector-select {
+            margin-bottom: 20px;
+        }
+        
+        .detector-select label {
+            display: block;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 8px;
+            font-size: 0.95em;
+        }
+        
+        .detector-select select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            font-size: 1em;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .detector-select select:hover {
+            border-color: #667eea;
+        }
+        
+        .detector-select select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .buttons {
+            margin-top: 22px;
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            flex: 1;
+            min-width: 130px;
+            padding: 15px 26px;
+            font-size: 1.02em;
+            border: none;
+            border-radius: 14px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-weight: 600;
+            letter-spacing: 0.3px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.5);
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
+            color: #4a5568;
+            border: 2px solid #e2e8f0;
+        }
+        
+        .btn-secondary:hover {
+            background: linear-gradient(135deg, #e4e8ec 0%, #d4d8dc 100%);
+            transform: translateY(-2px);
+        }
+        
+        .result-section {
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        .result-section.show {
+            display: block;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .emotion-display {
+            text-align: center;
+            padding: 32px 25px;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            border-radius: 20px;
+            margin-bottom: 28px;
+            box-shadow: inset 0 2px 10px rgba(0,0,0,0.05);
+        }
+        
+        .emotion-emoji {
+            font-size: 5.5em;
+            margin-bottom: 12px;
+            animation: bounce 1s ease;
+        }
+        
+        @keyframes bounce {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.15); }
+        }
+        
+        .emotion-name {
+            font-size: 2.1em;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 6px;
+        }
+        
+        .emotion-intensity {
+            font-size: 1.2em;
+            color: #64748b;
+            font-weight: 500;
+        }
+        
+        .confidence-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            padding: 8px 22px;
+            border-radius: 25px;
+            font-size: 0.95em;
+            font-weight: 600;
+            margin-top: 14px;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+        
+        .score-display {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 32px;
+            border-radius: 20px;
+            text-align: center;
+            margin-bottom: 28px;
+            box-shadow: 0 10px 30px rgba(245, 87, 108, 0.3);
+        }
+        
+        .score-label {
+            font-size: 1.05em;
+            opacity: 0.95;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+        
+        .score-value {
+            font-size: 3.8em;
+            font-weight: 800;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+        
+        .score-bar {
+            width: 100%;
+            height: 24px;
+            background: rgba(255,255,255,0.25);
+            border-radius: 12px;
+            overflow: hidden;
+            margin-top: 18px;
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .score-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #fff 0%, #fffacd 100%);
+            border-radius: 12px;
+            transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 2px 10px rgba(255,255,255,0.3);
+        }
+        
+        .probabilities {
+            margin-top: 28px;
+        }
+        
+        .probabilities h3 {
+            color: #374151;
+            margin-bottom: 18px;
+            font-size: 1.25em;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .prob-item {
+            display: flex;
+            align-items: center;
+            padding: 13px 0;
+            border-bottom: 1px solid #f1f5f9;
+            transition: background 0.2s;
+        }
+        
+        .prob-item:hover {
+            background: #f8fafc;
+            margin: 0 -10px;
+            padding: 13px 10px;
+            border-radius: 8px;
+        }
+        
+        .prob-item:last-child {
+            border-bottom: none;
+        }
+        
+        .prob-label {
+            width: 100px;
+            font-weight: 600;
+            color: #374151;
+            font-size: 1.02em;
+        }
+        
+        .prob-bar-container {
+            flex: 1;
+            height: 22px;
+            background: #f1f5f9;
+            border-radius: 11px;
+            overflow: hidden;
+            margin: 0 16px;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+        }
+        
+        .prob-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            border-radius: 11px;
+            transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .prob-value {
+            width: 65px;
+            text-align: right;
+            font-weight: 700;
+            font-size: 1.02em;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .advice-section {
+            margin-top: 32px;
+            padding: 28px;
+            border-radius: 20px;
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border-left: 6px solid #f59e0b;
+            box-shadow: 0 4px 15px rgba(245, 158, 11, 0.15);
+        }
+        
+        .advice-section h3 {
+            color: #92400e;
+            font-size: 1.3em;
+            margin-bottom: 16px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .advice-section ul {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .advice-section li {
+            padding: 11px 0;
+            padding-left: 35px;
+            position: relative;
+            color: #78350f;
+            font-size: 1.02em;
+            line-height: 1.7;
+        }
+        
+        .advice-section li:before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            color: #059669;
+            font-weight: 900;
+            font-size: 1.25em;
+        }
+        
+        .warning-box {
+            margin-top: 20px;
+            padding: 18px;
+            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+            border-radius: 14px;
+            border-left: 5px solid #ef4444;
+        }
+        
+        .warning-box p {
+            color: #991b1b;
+            font-weight: 600;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px 20px;
+        }
+        
+        .spinner {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #667eea;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+            box-shadow: 0 0 20px rgba(102, 126, 234, 0.2);
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .loading p {
+            color: #667eea;
+            font-size: 1.15em;
+            font-weight: 600;
+        }
+        
+        .captured-image {
+            margin-top: 24px;
+            text-align: center;
+        }
+        
+        .captured-image img {
+            max-width: 100%;
+            border-radius: 16px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+            border: 4px solid white;
+        }
+        
+        .error-message {
+            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+            color: #991b1b;
+            padding: 20px;
+            border-radius: 14px;
+            margin-top: 20px;
+            text-align: center;
+            font-weight: 600;
+            border-left: 5px solid #ef4444;
+        }
+        
+        .tips-section {
+            margin-top: 28px;
+            padding: 25px;
+            background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
+            border-radius: 18px;
+            border-left: 5px solid #0ea5e9;
+        }
+        
+        .tips-section h3 {
+            color: #0c4a6e;
+            font-size: 1.3em;
+            margin-bottom: 18px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .tips-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 16px;
+        }
+        
+        .tip-card {
+            background: white;
+            padding: 18px;
+            border-radius: 14px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            transition: all 0.3s;
+        }
+        
+        .tip-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.12);
+        }
+        
+        .tip-icon {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+        
+        .tip-title {
+            font-weight: 700;
+            color: #0c4a6e;
+            margin-bottom: 6px;
+            font-size: 1.02em;
+        }
+        
+        .tip-desc {
+            color: #475569;
+            font-size: 0.92em;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎭 情绪识别与心理健康分析</h1>
+            <p>使用最佳配置 + 拍照指南</p>
+        </div>
+        
+        <div class="main-content">
+            <div class="card">
+                <h2>📷 拍照识别</h2>
+                
+                <div class="detector-select">
+                    <label for="detectorSelect">🔧 人脸检测器选择：</label>
+                    <select id="detectorSelect">
+                        <option value="retinaface">RetinaFace (最准确，推荐)</option>
+                        <option value="opencv">OpenCV (最快)</option>
+                        <option value="mtcnn">MTCNN (平衡)</option>
+                        <option value="ssd">SSD (稳定)</option>
+                    </select>
+                </div>
+                
+                <div class="video-container">
+                    <video id="video" autoplay playsinline></video>
+                    <canvas id="canvas"></canvas>
+                </div>
+                
+                <div class="buttons">
+                    <button class="btn-primary" id="captureBtn">🎬 拍照识别</button>
+                    <button class="btn-secondary" id="stopBtn">⏹️ 关闭相机</button>
+                </div>
+                
+                <div class="tips-section">
+                    <h3>📝 拍照技巧</h3>
+                    <div class="tips-grid" id="tipsGrid"></div>
+                </div>
+                
+                <div class="captured-image" id="capturedImage" style="display: none;">
+                    <img id="capturedImg" alt="Captured">
+                </div>
+            </div>
+            
+            <div class="card">
+                <h2>📊 分析结果</h2>
+                <div id="loading" class="loading" style="display: none;">
+                    <div class="spinner"></div>
+                    <p>正在分析您的情绪...</p>
+                </div>
+                <div id="errorMessage" class="error-message" style="display: none;"></div>
+                <div id="resultSection" class="result-section">
+                    <div class="emotion-display">
+                        <div class="emotion-emoji" id="emotionEmoji">😊</div>
+                        <div class="emotion-name" id="emotionName">开心</div>
+                        <div class="emotion-intensity" id="emotionIntensity">开心</div>
+                        <div class="confidence-badge" id="confidenceBadge">置信度: 85%</div>
+                    </div>
+                    
+                    <div class="score-display">
+                        <div class="score-label">❤️ 心理健康得分</div>
+                        <div class="score-value" id="mentalHealthScore">75</div>
+                        <div class="score-bar">
+                            <div class="score-fill" id="scoreFill" style="width: 75%;"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="probabilities">
+                        <h3>📈 所有情绪概率</h3>
+                        <div id="probabilitiesList"></div>
+                    </div>
+                    
+                    <div class="advice-section" id="adviceSection">
+                        <h3 id="adviceTitle">💡 心理健康建议</h3>
+                        <ul id="adviceList"></ul>
+                    </div>
+                    
+                    <div class="warning-box" id="warningBox" style="display: none;">
+                        <p>⚠️ <span id="warningText"></span></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const emotionNamesZh = {
+            'angry': '愤怒',
+            'disgust': '厌恶',
+            'fear': '恐惧',
+            'happy': '开心',
+            'sad': '悲伤',
+            'surprise': '惊讶',
+            'neutral': '中性'
+        };
+        
+        let video = document.getElementById('video');
+        let canvas = document.getElementById('canvas');
+        let captureBtn = document.getElementById('captureBtn');
+        let stopBtn = document.getElementById('stopBtn');
+        let stream = null;
+        let currentTips = [];
+        
+        async function startCamera() {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: 'user', width: 640, height: 480 } 
+                });
+                video.srcObject = stream;
+            } catch (err) {
+                console.error('Error accessing camera:', err);
+                alert('无法访问相机，请确保已授予相机权限');
+            }
+        }
+        
+        function stopCamera() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+        }
+        
+        function displayTips(tips) {
+            currentTips = tips;
+            const tipsGrid = document.getElementById('tipsGrid');
+            tipsGrid.innerHTML = '';
+            
+            tips.forEach(tip => {
+                const tipCard = document.createElement('div');
+                tipCard.className = 'tip-card';
+                tipCard.innerHTML = `
+                    <div class="tip-icon">${tip.icon}</div>
+                    <div class="tip-title">${tip.title}</div>
+                    <div class="tip-desc">${tip.description}</div>
+                `;
+                tipsGrid.appendChild(tipCard);
+            });
+        }
+        
+        captureBtn.addEventListener('click', async () => {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0);
+            
+            const capturedImg = document.getElementById('capturedImg');
+            capturedImg.src = canvas.toDataURL('image/jpeg');
+            document.getElementById('capturedImage').style.display = 'block';
+            
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('resultSection').classList.remove('show');
+            document.getElementById('errorMessage').style.display = 'none';
+            
+            try {
+                const imageData = canvas.toDataURL('image/jpeg');
+                const detector = document.getElementById('detectorSelect').value;
+                
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ 
+                        image: imageData,
+                        detector: detector
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.photo_tips && currentTips.length === 0) {
+                    displayTips(result.photo_tips);
+                }
+                
+                if (result.success) {
+                    displayResult(result);
+                } else {
+                    showError(result.error || '识别失败，请重试');
+                }
+            } catch (err) {
+                console.error('Error:', err);
+                showError('网络错误，请重试');
+            }
+            
+            document.getElementById('loading').style.display = 'none';
+        });
+        
+        stopBtn.addEventListener('click', () => {
+            stopCamera();
+        });
+        
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = '❌ ' + message;
+            errorDiv.style.display = 'block';
+        }
+        
+        function displayResult(result) {
+            document.getElementById('resultSection').classList.add('show');
+            
+            document.getElementById('emotionEmoji').textContent = result.emotion_emoji;
+            document.getElementById('emotionName').textContent = result.emotion_zh;
+            document.getElementById('emotionIntensity').textContent = result.intensity_description;
+            document.getElementById('confidenceBadge').textContent = `置信度: ${result.confidence_percent}%`;
+            
+            const score = result.mental_health_score;
+            document.getElementById('mentalHealthScore').textContent = score;
+            document.getElementById('scoreFill').style.width = score + '%';
+            
+            const probList = document.getElementById('probabilitiesList');
+            probList.innerHTML = '';
+            
+            const sortedProbs = Object.entries(result.all_probabilities)
+                .sort((a, b) => b[1] - a[1]);
+            
+            sortedProbs.forEach(([emotion, prob]) => {
+                const item = document.createElement('div');
+                item.className = 'prob-item';
+                item.innerHTML = `
+                    <span class="prob-label">${emotionNamesZh[emotion] || emotion}</span>
+                    <div class="prob-bar-container">
+                        <div class="prob-bar" style="width: ${(prob * 100).toFixed(1)}%;"></div>
+                    </div>
+                    <span class="prob-value">${(prob * 100).toFixed(1)}%</span>
+                `;
+                probList.appendChild(item);
+            });
+            
+            if (result.advice) {
+                const adviceSection = document.getElementById('adviceSection');
+                const adviceTitle = document.getElementById('adviceTitle');
+                const adviceList = document.getElementById('adviceList');
+                const warningBox = document.getElementById('warningBox');
+                
+                adviceSection.style.borderLeftColor = result.advice.color || '#f59e0b';
+                
+                adviceTitle.innerHTML = `💡 ${result.advice.title}`;
+                adviceList.innerHTML = '';
+                
+                if (result.advice.suggestions) {
+                    result.advice.suggestions.forEach(suggestion => {
+                        const li = document.createElement('li');
+                        li.textContent = suggestion;
+                        adviceList.appendChild(li);
+                    });
+                }
+                
+                if (result.advice.warning) {
+                    warningBox.style.display = 'block';
+                    document.getElementById('warningText').textContent = result.advice.warning;
+                } else {
+                    warningBox.style.display = 'none';
+                }
+            }
+        }
+        
+        startCamera();
+    </script>
+</body>
+</html>
+

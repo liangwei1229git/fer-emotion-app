@@ -1,0 +1,13 @@
+flask
+flask-cors
+deepface
+opencv-python
+pillow
+numpy
+pandas
+matplotlib
+seaborn
+scikit-learn
+gunicorn
+tf-keras
+
